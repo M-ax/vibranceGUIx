@@ -159,7 +159,7 @@
             this.MaximizeBox = false;
             this.Name = "VibranceSettings";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "vibranceGUI";
+            this.Text = "vibranceGUIx";
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarIngameLevel)).EndInit();

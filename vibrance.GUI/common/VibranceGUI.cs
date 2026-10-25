@@ -21,8 +21,12 @@ namespace vibrance.GUI.common
         private readonly int _defaultIngameValue;
         private readonly Func<int, string> _resolveLabelLevel;
         private readonly IVibranceProxy _v;
-        private IRegistryController _registryController;
-        private const string AppName = "vibranceGUI";
+        private readonly GraphicsAdapter _graphicsAdapter;
+        private GraphicsAdapterPreference _preference;
+        private bool _updatingOptions;
+        private const string AppName = "vibranceGUIx";
+        // Keep the original registration to preserve startup choices on upgrade.
+        private const string StartupRegistrationName = "vibranceGUI";
         private const string TwitterLink = "https://twitter.com/juvlarN";
         private const string PaypalDonationLink = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JDQFNKNNEW356";
 
@@ -37,16 +41,27 @@ namespace vibrance.GUI.common
             int minTrackBarValue,
             int maxTrackBarValue,
             int defaultIngameValue,
-            Func<int, string> resolveLabelLevel)
+            Func<int, string> resolveLabelLevel,
+            GraphicsAdapter graphicsAdapter,
+            GraphicsAdapterPreference preference)
         {
             _defaultWindowsLevel = defaultWindowsLevel;
             _minTrackBarValue = minTrackBarValue;
             _maxTrackBarValue = maxTrackBarValue;
             _defaultIngameValue = defaultIngameValue;
             _resolveLabelLevel = resolveLabelLevel;
+            _graphicsAdapter = graphicsAdapter;
+            _preference = preference;
             _allowVisible = true;
 
             InitializeComponent();
+            _updatingOptions = true;
+            comboBoxGraphicsAdapter.SelectedIndex = (int)preference;
+            var startupController = new RegistryController();
+            checkBoxAutostart.Checked = startupController.IsStartupPathUnchanged(StartupRegistrationName, StartupCommand);
+            if (!checkBoxAutostart.Checked && startupController.IsProgramRegistered(StartupRegistrationName))
+                toolTip.SetToolTip(checkBoxAutostart, "Another copy is registered to start at sign-in. Check this option to use this copy instead.");
+            _updatingOptions = false;
 
             trackBarWindowsLevel.Minimum = minTrackBarValue;
             trackBarWindowsLevel.Maximum = maxTrackBarValue;
@@ -72,11 +87,49 @@ namespace vibrance.GUI.common
             }
             _applicationSettings = new List<ApplicationSetting>();
             _v = getProxy(_applicationSettings, _windowsResolutionSettings);
+            if (!IsGpuInitialized)
+                SetStartupError("The selected GPU could not initialize. Check the driver and monitor connection, or select another GPU and restart.");
 
             backgroundWorker.WorkerReportsProgress = true;
             settingsBackgroundWorker.WorkerReportsProgress = true;
 
             backgroundWorker.RunWorkerAsync();
+        }
+
+        public bool IsGpuInitialized
+        {
+            get { return _v != null && _v.GetVibranceInfo().isInitialized; }
+        }
+
+        private static string StartupCommand
+        {
+            get { return "\"" + Application.ExecutablePath + "\" -minimized"; }
+        }
+
+        public void SetStartupError(string message)
+        {
+            statusLabel.Text = "GPU unavailable. Select a GPU and restart.";
+            statusLabel.ForeColor = Color.Red;
+            toolTip.SetToolTip(statusLabel, message);
+        }
+
+        private void comboBoxGraphicsAdapter_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_updatingOptions || comboBoxGraphicsAdapter.SelectedIndex < 0)
+                return;
+
+            var preference = (GraphicsAdapterPreference)comboBoxGraphicsAdapter.SelectedIndex;
+            if (!new SettingsController().SetGraphicsAdapterPreference(preference))
+            {
+                _updatingOptions = true;
+                comboBoxGraphicsAdapter.SelectedIndex = (int)_preference;
+                _updatingOptions = false;
+                MessageBox.Show(this, "Could not save the GPU preference. Check access to your AppData folder.",
+                    AppName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            _preference = preference;
+            labelGraphicsAdapterRestart.Text = "Saved. Restart vibranceGUIx to apply.";
         }
 
         protected override void SetVisibleCore(bool value)
@@ -136,7 +189,7 @@ namespace vibrance.GUI.common
                 ReadVibranceSettings(out vibranceWindowsLevel, out affectPrimaryMonitorOnly, out neverSwitchResolution);
             }
 
-            if (_v.GetVibranceInfo().isInitialized)
+            if (IsGpuInitialized)
             {
                 backgroundWorker.ReportProgress(1);
 
@@ -147,6 +200,8 @@ namespace vibrance.GUI.common
                 _v.SetVibranceWindowsLevel(vibranceWindowsLevel);
                 _v.SetAffectPrimaryMonitorOnly(affectPrimaryMonitorOnly);
                 _v.SetNeverSwitchResolution(neverSwitchResolution);
+                // Restore the saved desktop level even when no game profiles exist.
+                _v.HandleDvcExit();
             }
         }
 
@@ -257,35 +312,25 @@ namespace vibrance.GUI.common
 
         private void checkBoxAutostart_CheckedChanged(object sender, EventArgs e)
         {
+            if (_updatingOptions)
+                return;
+
             RegistryController autostartController = new RegistryController();
-            if (this.checkBoxAutostart.Checked)
+            bool success = checkBoxAutostart.Checked
+                ? autostartController.RegisterProgram(StartupRegistrationName, StartupCommand)
+                : autostartController.UnregisterProgram(StartupRegistrationName);
+            if (!success)
             {
-                string pathToExe = "\"" + Application.ExecutablePath + "\" -minimized";
-                if (!autostartController.IsProgramRegistered(AppName))
-                {
-                    this.notifyIcon.BalloonTipText = autostartController.RegisterProgram(AppName, pathToExe) 
-                        ? "Registered to Autostart!" 
-                        : "Registering to Autostart failed!";
-                }
-                else if (!autostartController.IsStartupPathUnchanged(AppName, pathToExe))
-                {
-                    this.notifyIcon.BalloonTipText = autostartController.RegisterProgram(AppName, pathToExe)
-                        ? "Updated Autostart Path!"
-                        : "Updating Autostart Path failed!";
-                }
-                else
-                {
-                    return;
-                }
+                _updatingOptions = true;
+                checkBoxAutostart.Checked = autostartController.IsStartupPathUnchanged(StartupRegistrationName, StartupCommand);
+                _updatingOptions = false;
+                MessageBox.Show(this, "Could not change launch on boot. Check your Windows startup permissions.",
+                    AppName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             else
             {
-                this.notifyIcon.BalloonTipText = autostartController.UnregisterProgram(AppName) 
-                    ? "Unregistered from Autostart!" 
-                    : "Unregistering from Autostart failed!";
+                toolTip.SetToolTip(checkBoxAutostart, "Start this copy minimized in the notification area when you sign in. Windows Task Manager can also disable startup apps.");
             }
-
-            notifyIcon.ShowBalloonTip(250);
         }
 
         private void twitterToolStripTextBox_Click(object sender, EventArgs e)
@@ -303,8 +348,9 @@ namespace vibrance.GUI.common
             this.Invoke((MethodInvoker)delegate
             {
                 this.trackBarWindowsLevel.Enabled = flag;
-                this.checkBoxAutostart.Enabled = flag;
                 this.checkBoxPrimaryMonitorOnly.Enabled = flag;
+                this.checkBoxNeverChangeResolutions.Enabled = flag;
+                this.listApplications.Enabled = flag;
                 this.buttonAddProgram.Enabled = flag;
                 this.buttonProcessExplorer.Enabled = flag;
                 this.buttonRemoveProgram.Enabled = flag;
@@ -362,11 +408,24 @@ namespace vibrance.GUI.common
 
         private void ReadVibranceSettings(out int vibranceWindowsLevel, out bool affectPrimaryMonitorOnly, out bool neverSwitchResolution)
         {
-            _registryController = new RegistryController();
-            this.checkBoxAutostart.Checked = _registryController.IsProgramRegistered(AppName);
-
-            SettingsController settingsController = new SettingsController();
-            settingsController.ReadVibranceSettings(_v.GraphicsAdapter, out vibranceWindowsLevel, out affectPrimaryMonitorOnly, out neverSwitchResolution, out _applicationSettings);
+            SettingsController settingsController = new SettingsController(_graphicsAdapter);
+            if (IsGpuInitialized && settingsController.CanImportLegacyProfile(_graphicsAdapter))
+            {
+                try
+                {
+                    if (MessageBox.Show(this,
+                        "Older vibranceGUI settings were found, but they do not identify their GPU.\n\n" +
+                        "Import them for " + _graphicsAdapter.ToString().ToUpper() + "?\n" +
+                        "Choose Yes only if these settings were used with this GPU vendor. " +
+                        "Choose No to leave them untouched; you can select another GPU and restart.",
+                        "Import older profile", MessageBoxButtons.YesNo, MessageBoxIcon.Question,
+                        MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                        settingsController.ImportLegacyProfile(_graphicsAdapter);
+                }
+                catch (IOException ex) { Log(ex); }
+                catch (UnauthorizedAccessException ex) { Log(ex); }
+            }
+            settingsController.ReadVibranceSettings(_graphicsAdapter, out vibranceWindowsLevel, out affectPrimaryMonitorOnly, out neverSwitchResolution, out _applicationSettings);
 
             if (this.IsHandleCreated)
             {
@@ -401,7 +460,7 @@ namespace vibrance.GUI.common
 
         private void SaveVibranceSettings(int windowsLevel, bool affectPrimaryMonitorOnly, bool neverSwitchResolution)
         {
-            SettingsController settingsController = new SettingsController();
+            SettingsController settingsController = new SettingsController(_graphicsAdapter);
 
             settingsController.SetVibranceSettings(
                 windowsLevel.ToString(),

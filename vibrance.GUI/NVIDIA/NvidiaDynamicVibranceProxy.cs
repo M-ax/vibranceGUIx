@@ -154,13 +154,8 @@ namespace vibrance.GUI.NVIDIA
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
-                DialogResult result = MessageBox.Show(NvidiaDynamicVibranceProxy.NvapiErrorInitFailed, "vibranceGUI Error", 
-                    MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if (result == DialogResult.OK)
-                {
-                    Process.Start(GuideLink);
-                }                
+                _vibranceInfo.isInitialized = false;
+                VibranceGUI.Log(ex);
             }
         }
 
@@ -170,38 +165,17 @@ namespace vibrance.GUI.NVIDIA
             int[] outputIds = new int[NvapiMaxPhysicalGpus];
             enumeratePhsyicalGPUs(gpuHandles);
 
-            foreach (int gpuHandle in gpuHandles)
-            {
-                if(gpuHandle != 0)
-                {
-                    NvSystemType systemType = getGpuSystemType(gpuHandle);
-                    if (systemType == NvSystemType.NvSystemTypeUnknown)
-                    {
-                        MessageBox.Show(NvidiaDynamicVibranceProxy.NvapiErrorSystypeUnknown, "vibranceGUI Error", 
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        _vibranceInfo.isInitialized = false; 
-                        return;
-                    }
-                }
-            }
-
+            // Capability, not desktop/laptop classification, determines support.
             EnumerateDisplayHandles();
+            if (_vibranceInfo.displayHandles.Count == 0)
+                return;
 
             _vibranceInfo.activeOutput = getActiveOutputs(gpuHandles, outputIds);
             StringBuilder buffer = new StringBuilder(64);
             char[] sz = new char[64];
             getGpuName(gpuHandles, buffer);
             _vibranceInfo.szGpuName = buffer.ToString();
-            _vibranceInfo.defaultHandle = enumerateNvidiaDisplayHandle(0);
-
-            NvDisplayDvcInfo info = new NvDisplayDvcInfo();
-            if (getDVCInfo(ref info, _vibranceInfo.defaultHandle))
-            {
-                if (info.currentLevel != _vibranceInfo.userVibranceSettingDefault)
-                {
-                    setDVCLevel(_vibranceInfo.defaultHandle, _vibranceInfo.userVibranceSettingDefault);
-                }
-            }
+            _vibranceInfo.defaultHandle = _vibranceInfo.displayHandles[0];
 
             _vibranceInfo.isInitialized = true;
         }
@@ -285,13 +259,14 @@ namespace vibrance.GUI.NVIDIA
 
         private void EnumerateDisplayHandles()
         {
-            for (int i = 0, displayHandle = 0; displayHandle != -1; i++)
+            _vibranceInfo.displayHandles = new List<int>();
+            for (int i = 0; i < NvapiMaxPhysicalGpus; i++)
             {
-                if (_vibranceInfo.displayHandles == null)
-                    _vibranceInfo.displayHandles = new List<int>();
-
-                displayHandle = enumerateNvidiaDisplayHandle(i);
-                if (displayHandle != -1)
+                int displayHandle = enumerateNvidiaDisplayHandle(i);
+                if (displayHandle == -1)
+                    break;
+                NvDisplayDvcInfo info = new NvDisplayDvcInfo();
+                if (getDVCInfo(ref info, displayHandle))
                     _vibranceInfo.displayHandles.Add(displayHandle);
             }
         }

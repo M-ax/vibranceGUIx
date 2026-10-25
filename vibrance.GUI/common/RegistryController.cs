@@ -7,90 +7,69 @@ namespace vibrance.GUI.common
     {
         private const string RunKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 
-        private RegistryKey _startupKey;
-
-        public RegistryController()
-        {
-
-        }
-
         public bool RegisterProgram(string appName, string pathToExe)
         {
             try
             {
-                _startupKey = Registry.CurrentUser.OpenSubKey(RunKey, true);
-                if (_startupKey == null)
-                    return false;
-                _startupKey.SetValue(appName, pathToExe);
+                using (RegistryKey startupKey = Registry.CurrentUser.CreateSubKey(RunKey))
+                {
+                    if (startupKey == null)
+                        return false;
+                    startupKey.SetValue(appName, pathToExe, RegistryValueKind.String);
+                    return true;
+                }
             }
             catch (Exception)
             {
                 return false;
             }
-            finally
-            {
-                _startupKey.Close();
-            }
-            return true;
         }
 
         public bool UnregisterProgram(string appName)
         {
             try
             {
-                _startupKey = Registry.CurrentUser.OpenSubKey(RunKey, true);
-                _startupKey.DeleteValue(appName, true);
+                using (RegistryKey startupKey = Registry.CurrentUser.OpenSubKey(RunKey, true))
+                {
+                    if (startupKey != null)
+                        startupKey.DeleteValue(appName, false);
+                    return true;
+                }
             }
             catch (Exception)
             {
                 return false;
             }
-            finally
-            {
-                _startupKey.Close();
-            }
-            return true;
         }
 
         public bool IsProgramRegistered(string appName)
         {
             try
             {
-                _startupKey = Registry.CurrentUser.OpenSubKey(RunKey, true);
-                if (_startupKey.GetValue(appName) != null)
-                    return true;
+                using (RegistryKey startupKey = Registry.CurrentUser.OpenSubKey(RunKey))
+                {
+                    return startupKey != null && startupKey.GetValue(appName) != null;
+                }
             }
             catch (Exception)
             {
                 return false;
             }
-            return false;
         }
 
         public bool IsStartupPathUnchanged(string appName, string pathToExe)
         {
             try
             {
-                _startupKey = Registry.CurrentUser.OpenSubKey(RunKey);
-                if (_startupKey == null)
+                using (RegistryKey startupKey = Registry.CurrentUser.OpenSubKey(RunKey))
                 {
-                    return false;
+                    return startupKey != null && string.Equals(startupKey.GetValue(appName) as string,
+                        pathToExe, StringComparison.OrdinalIgnoreCase);
                 }
-
-                string startUpValue = _startupKey.GetValue(appName).ToString();
-                if (startUpValue == pathToExe)
-                {
-                    return true;
-                }
-                return false;
             }
             catch (Exception)
             {
                 return false;
-            }
-            finally
-            {
-                _startupKey.Close();
             }
         }
     }

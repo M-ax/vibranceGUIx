@@ -31,8 +31,8 @@ namespace vibrance.GUI.AMD
                 _vibranceInfo = new VibranceInfo();
                 if (amdAdapter.IsAvailable())
                 {
-                    _vibranceInfo.isInitialized = true;
                     amdAdapter.Init();
+                    _vibranceInfo.isInitialized = true;
                 }
 
                 if (_vibranceInfo.isInitialized)
@@ -44,13 +44,8 @@ namespace vibrance.GUI.AMD
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.ToString());
-                DialogResult result = MessageBox.Show(NvidiaDynamicVibranceProxy.NvapiErrorInitFailed, "vibranceGUI Error",
-                    MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if (result == DialogResult.OK)
-                {
-                    Process.Start(NvidiaDynamicVibranceProxy.GuideLink);
-                }
+                _vibranceInfo.isInitialized = false;
+                VibranceGUI.Log(ex);
             }
         }
 

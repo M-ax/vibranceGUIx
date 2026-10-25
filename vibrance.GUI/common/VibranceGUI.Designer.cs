@@ -36,6 +36,9 @@
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.backgroundWorker = new System.ComponentModel.BackgroundWorker();
             this.checkBoxAutostart = new System.Windows.Forms.CheckBox();
+            this.labelGraphicsAdapter = new System.Windows.Forms.Label();
+            this.comboBoxGraphicsAdapter = new System.Windows.Forms.ComboBox();
+            this.labelGraphicsAdapterRestart = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.checkBoxNeverChangeResolutions = new System.Windows.Forms.CheckBox();
             this.checkBoxPrimaryMonitorOnly = new System.Windows.Forms.CheckBox();
@@ -66,10 +69,10 @@
             // 
             this.notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.notifyIcon.BalloonTipText = "Running minimized... Like the program? Consider donating!";
-            this.notifyIcon.BalloonTipTitle = "vibranceGUI";
+            this.notifyIcon.BalloonTipTitle = AppName;
             this.notifyIcon.ContextMenuStrip = this.contextMenuStrip;
             this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
-            this.notifyIcon.Text = "vibranceGUI";
+            this.notifyIcon.Text = AppName;
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
             // 
@@ -113,12 +116,16 @@
             this.checkBoxAutostart.Name = "checkBoxAutostart";
             this.checkBoxAutostart.Size = new System.Drawing.Size(131, 17);
             this.checkBoxAutostart.TabIndex = 8;
-            this.checkBoxAutostart.Text = "Autostart vibranceGUI";
+            this.checkBoxAutostart.Text = "Launch on boot (at Windows sign-in)";
+            this.toolTip.SetToolTip(this.checkBoxAutostart, "Start minimized in the notification area when you sign in. Windows Task Manager can also disable startup apps.");
             this.checkBoxAutostart.UseVisualStyleBackColor = true;
             this.checkBoxAutostart.CheckedChanged += new System.EventHandler(this.checkBoxAutostart_CheckedChanged);
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.labelGraphicsAdapter);
+            this.groupBox1.Controls.Add(this.comboBoxGraphicsAdapter);
+            this.groupBox1.Controls.Add(this.labelGraphicsAdapterRestart);
             this.groupBox1.Controls.Add(this.checkBoxNeverChangeResolutions);
             this.groupBox1.Controls.Add(this.checkBoxPrimaryMonitorOnly);
             this.groupBox1.Controls.Add(this.groupBox3);
@@ -129,6 +136,23 @@
             this.groupBox1.TabIndex = 15;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Settings";
+            //
+            // GPU preference
+            //
+            this.labelGraphicsAdapter.AutoSize = true;
+            this.labelGraphicsAdapter.Location = new System.Drawing.Point(196, 65);
+            this.labelGraphicsAdapter.Text = "Graphics driver:";
+            this.comboBoxGraphicsAdapter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxGraphicsAdapter.Items.AddRange(new object[] { "Auto (prefer NVIDIA)", "NVIDIA", "AMD Radeon" });
+            this.comboBoxGraphicsAdapter.Location = new System.Drawing.Point(196, 83);
+            this.comboBoxGraphicsAdapter.Name = "comboBoxGraphicsAdapter";
+            this.comboBoxGraphicsAdapter.Size = new System.Drawing.Size(193, 21);
+            this.comboBoxGraphicsAdapter.TabIndex = 17;
+            this.comboBoxGraphicsAdapter.SelectedIndexChanged += new System.EventHandler(this.comboBoxGraphicsAdapter_SelectedIndexChanged);
+            this.toolTip.SetToolTip(this.comboBoxGraphicsAdapter, "Auto prefers NVIDIA on systems with both NVIDIA and AMD GPUs. Only displays connected to the selected GPU can be controlled. Changes apply after restarting vibranceGUIx.");
+            this.labelGraphicsAdapterRestart.Location = new System.Drawing.Point(196, 109);
+            this.labelGraphicsAdapterRestart.Size = new System.Drawing.Size(193, 28);
+            this.labelGraphicsAdapterRestart.Text = "Changes apply after restart.";
             // 
             // checkBoxNeverChangeResolutions
             // 
@@ -186,17 +210,17 @@
             // 
             // statusLabel
             // 
-            this.statusLabel.AutoSize = true;
-            this.statusLabel.Location = new System.Drawing.Point(106, 502);
+            this.statusLabel.AutoSize = false;
+            this.statusLabel.Location = new System.Drawing.Point(106, 480);
             this.statusLabel.Name = "statusLabel";
-            this.statusLabel.Size = new System.Drawing.Size(61, 13);
+            this.statusLabel.Size = new System.Drawing.Size(300, 36);
             this.statusLabel.TabIndex = 14;
             this.statusLabel.Text = "Initializing...";
             // 
             // observerStatusLabel
             // 
             this.observerStatusLabel.AutoSize = true;
-            this.observerStatusLabel.Location = new System.Drawing.Point(12, 502);
+            this.observerStatusLabel.Location = new System.Drawing.Point(12, 480);
             this.observerStatusLabel.Name = "observerStatusLabel";
             this.observerStatusLabel.Size = new System.Drawing.Size(87, 13);
             this.observerStatusLabel.TabIndex = 13;
@@ -236,7 +260,7 @@
             this.buttonPaypal.Name = "buttonPaypal";
             this.buttonPaypal.Size = new System.Drawing.Size(90, 55);
             this.buttonPaypal.TabIndex = 16;
-            this.toolTip.SetToolTip(this.buttonPaypal, "Click here to donate to vibranceGUI through Paypal");
+            this.toolTip.SetToolTip(this.buttonPaypal, "Donate to the original vibranceGUI author through PayPal");
             this.buttonPaypal.UseVisualStyleBackColor = false;
             this.buttonPaypal.Click += new System.EventHandler(this.buttonPaypal_Click);
             // 
@@ -325,7 +349,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "VibranceGUI";
-            this.Text = "vibranceGUI";
+            this.Text = AppName;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.Shown += new System.EventHandler(this.Form1_Shown);
@@ -350,6 +374,9 @@
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.ComponentModel.BackgroundWorker backgroundWorker;
         private System.Windows.Forms.CheckBox checkBoxAutostart;
+        private System.Windows.Forms.Label labelGraphicsAdapter;
+        private System.Windows.Forms.ComboBox comboBoxGraphicsAdapter;
+        private System.Windows.Forms.Label labelGraphicsAdapterRestart;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.Label labelWindowsLevel;

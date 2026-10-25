@@ -77,7 +77,7 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ProcessExplorer";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "vibranceGUI Process Explorer";
+            this.Text = "vibranceGUIx Process Explorer";
             this.ResumeLayout(false);
 
         }

@@ -16,9 +16,7 @@ namespace vibrance.GUI
 {
     static class Program
     {
-        private const string ErrorGraphicsAdapterUnknown = "Failed to determine your Graphic GraphicsAdapter type (NVIDIA/AMD). Make sure you have installed a proper GPU driver. Intel laptops are not supported as stated on the website. When installing your GPU driver did not work, please contact @juvlarN at twitter. Press Yes to open twitter in your browser now. Error: ";
-        private const string ErrorGraphicsAdapterAmbiguous = "Both NVIDIA and AMD graphic drivers have been found on your system. This can happen when you recently switched your graphic card and did not uninstall the old drivers. Make sure to uninstall unused graphic drivers to keep your system safe and stable. Use the program \"Display Driver Uninstaller\" to uninstall your old drivers!\n\nPress Yes to open \"Display Driver Uninstaller\" download website now.\nPress No to quit vibranceGUI.";
-        private const string MessageBoxCaption = "vibranceGUI Error";
+        private const string MessageBoxCaption = "vibranceGUIx Error";
 
         [STAThread]
         static void Main(string[] args)
@@ -27,7 +25,7 @@ namespace vibrance.GUI
             Mutex mutex = new Mutex(true, "vibranceGUI~Mutex", out result);
             if (!result)
             {
-                MessageBox.Show("You can run vibranceGUI only once at a time!", MessageBoxCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Only one instance of vibranceGUIx or vibranceGUI can run at a time.", MessageBoxCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -35,8 +33,18 @@ namespace vibrance.GUI
             Application.SetCompatibleTextRenderingDefault(false);
             NativeMethods.SetDllDirectory(CommonUtils.GetVibrance_GUI_AppDataPath());
 
-            GraphicsAdapter adapter = GraphicsAdapterHelper.GetAdapter();
-            Form vibranceGui = null;
+            var preference = new SettingsController().ReadGraphicsAdapterPreference();
+            GraphicsAdapter adapter = GraphicsAdapter.Unknown;
+            string startupError = null;
+            try
+            {
+                adapter = GraphicsAdapterHelper.GetAdapter(preference);
+            }
+            catch (Exception ex)
+            {
+                startupError = "GPU detection failed: " + ex.Message;
+            }
+            VibranceGUI vibranceGui = null;
 
             if (adapter == GraphicsAdapter.Amd)
             {
@@ -48,49 +56,45 @@ namespace vibrance.GUI
                     0,
                     300,
                     100,
-                    x => x.ToString());
+                    x => x.ToString(), adapter, preference);
             }
             else if (adapter == GraphicsAdapter.Nvidia)
             {
                 const string nvidiaAdapterName = "vibranceDLL.dll";
                 string resourceName = $"{typeof(Program).Namespace}.NVIDIA.{nvidiaAdapterName}";
-                CommonUtils.LoadUnmanagedLibraryFromResource(
-                    Assembly.GetExecutingAssembly(),
-                    resourceName,
-                    nvidiaAdapterName);
-                Marshal.PrelinkAll(typeof(NvidiaDynamicVibranceProxy));
+                try
+                {
+                    CommonUtils.LoadUnmanagedLibraryFromResource(
+                        Assembly.GetExecutingAssembly(),
+                        resourceName,
+                        nvidiaAdapterName);
+                    Marshal.PrelinkAll(typeof(NvidiaDynamicVibranceProxy));
+                }
+                catch (Exception ex)
+                {
+                    startupError = "NVIDIA driver initialization failed: " + ex.Message;
+                }
 
                 vibranceGui = new VibranceGUI(
-                    (x, y) => new NvidiaDynamicVibranceProxy(x, y),
+                    (x, y) => startupError == null ? new NvidiaDynamicVibranceProxy(x, y) : null,
                     NvidiaDynamicVibranceProxy.NvapiDefaultLevel,
                     NvidiaDynamicVibranceProxy.NvapiDefaultLevel,
                     NvidiaDynamicVibranceProxy.NvapiMaxLevel,
                     NvidiaDynamicVibranceProxy.NvapiDefaultLevel,
-                    x => NvidiaVibranceValueWrapper.Find(x).Percentage);
+                    x => NvidiaVibranceValueWrapper.Find(x).Percentage, adapter, preference);
             }
-            else if (adapter == GraphicsAdapter.Unknown)
+            else
             {
-                string errorMessage = new Win32Exception(Marshal.GetLastWin32Error()).Message;
-                if (MessageBox.Show(ErrorGraphicsAdapterUnknown + errorMessage,
-                    MessageBoxCaption, MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes)
-                {
-                    System.Diagnostics.Process.Start("https://twitter.com/juvlarN");
-                }
-                return;
+                startupError = startupError ?? "The selected GPU is unavailable. Choose Auto or another GPU, then restart. Check that its driver is installed.";
+                vibranceGui = new VibranceGUI((x, y) => null, 0, 0, 63, 0,
+                    x => NvidiaVibranceValueWrapper.Find(x).Percentage, adapter, preference);
             }
-            else if(adapter == GraphicsAdapter.Ambiguous)
-            {
-                if(MessageBox.Show(ErrorGraphicsAdapterAmbiguous, MessageBoxCaption, MessageBoxButtons.YesNo, 
-                    MessageBoxIcon.Error) == DialogResult.Yes)
-                {
-                    System.Diagnostics.Process.Start("http://www.guru3d.com/files-details/display-driver-uninstaller-download.html");
-                }
-                return;
-            }
-            if (args.Contains("-minimized"))
+            if (startupError != null)
+                vibranceGui.SetStartupError(startupError);
+            if (args.Contains("-minimized") && vibranceGui.IsGpuInitialized)
             {
                 vibranceGui.WindowState = FormWindowState.Minimized;
-                ((VibranceGUI)vibranceGui).SetAllowVisible(false);
+                vibranceGui.SetAllowVisible(false);
             }
             vibranceGui.Text += String.Format(" ({0}, {1})", adapter.ToString().ToUpper(), Application.ProductVersion);
             Application.Run(vibranceGui);

@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // Allgemeine Informationen über eine Assembly werden über die folgenden 
 // Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
 // die mit einer Assembly verknüpft sind.
-[assembly: AssemblyTitle("vibranceGUI")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("vibranceGUIx")]
+[assembly: AssemblyDescription("Digital Vibrance for Windows: NVIDIA and AMD color profiles with hybrid-GPU selection.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("juvlarN")]
-[assembly: AssemblyProduct("vibrance.GUI")]
+[assembly: AssemblyCompany("vibranceGUIx contributors")]
+[assembly: AssemblyProduct("vibranceGUIx")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // Sie können alle Werte angeben oder die standardmäßigen Build- und Revisionsnummern 
 // übernehmen, indem Sie "*" eingeben:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("2.3.1.1")]
-[assembly: AssemblyFileVersion("2.3.1.1")]
+[assembly: AssemblyVersion("2.3.1.2")]
+[assembly: AssemblyFileVersion("2.3.1.2")]

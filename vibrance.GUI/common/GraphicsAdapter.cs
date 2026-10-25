@@ -1,9 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Management;
 using System.Runtime.InteropServices;
 using vibrance.GUI.AMD.vendor;
-using vibrance.GUI.AMD.vendor.adl32;
-using vibrance.GUI.NVIDIA;
 
 namespace vibrance.GUI.common
 {
@@ -11,55 +10,97 @@ namespace vibrance.GUI.common
     {
         Unknown = 0,
         Nvidia = 1,
-        Amd = 2,
-        Ambiguous = 3
+        Amd = 2
     }
 
-    public class GraphicsAdapterHelper
+    public enum GraphicsAdapterPreference
     {
+        Auto = 0,
+        Nvidia = 1,
+        Amd = 2
+    }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+    public static class GraphicsAdapterHelper
+    {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr LoadLibrary(string dllToLoad);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool FreeLibrary(IntPtr module);
 
         private const string _nvidiaDllName = "nvapi.dll";
         private static readonly string _amdDllName = Environment.Is64BitOperatingSystem 
             ? AMD.vendor.adl64.AdlImport.AtiadlFileName
             : AMD.vendor.adl32.AdlImport.AtiadlFileName;
 
-
-        public static GraphicsAdapter GetAdapter()
+        // Keep the selection policy separate from hardware probing so it is deterministic
+        // and testable. An explicit choice must never silently select the other vendor.
+        public static GraphicsAdapter SelectAdapter(GraphicsAdapterPreference preference, bool nvidiaAvailable, bool amdAvailable)
         {
-            string windowsFolder = Environment.GetFolderPath(Environment.SpecialFolder.SystemX86);
-            if (File.Exists(Path.Combine(windowsFolder, _amdDllName)) && 
-                File.Exists(Path.Combine(windowsFolder, _nvidiaDllName)))
+            switch (preference)
             {
-                return GraphicsAdapter.Ambiguous;
+                case GraphicsAdapterPreference.Nvidia:
+                    return nvidiaAvailable ? GraphicsAdapter.Nvidia : GraphicsAdapter.Unknown;
+                case GraphicsAdapterPreference.Amd:
+                    return amdAvailable ? GraphicsAdapter.Amd : GraphicsAdapter.Unknown;
+                default:
+                    return nvidiaAvailable ? GraphicsAdapter.Nvidia :
+                        amdAvailable ? GraphicsAdapter.Amd : GraphicsAdapter.Unknown;
             }
-            if (IsAdapterAvailable(_amdDllName))
+        }
+
+        public static GraphicsAdapter GetAdapter(GraphicsAdapterPreference preference)
+        {
+            bool nvidiaInstalled = false;
+            bool amdInstalled = false;
+            // Driver DLLs can remain after a GPU is removed. Only consider installed
+            // hardware, including an iGPU with no monitor attached.
+            using (var searcher = new ManagementObjectSearcher("SELECT PNPDeviceID FROM Win32_VideoController"))
+            using (var controllers = searcher.Get())
             {
-                IAmdAdapter amdAdapter = Environment.Is64BitOperatingSystem ? (IAmdAdapter)new AmdAdapter64() :new AmdAdapter32();
-                if (amdAdapter.IsAvailable())
+                foreach (ManagementObject controller in controllers)
                 {
-                    return GraphicsAdapter.Amd;
+                    using (controller)
+                    {
+                        string deviceId = Convert.ToString(controller["PNPDeviceID"]);
+                        nvidiaInstalled |= deviceId.IndexOf("VEN_10DE", StringComparison.OrdinalIgnoreCase) >= 0;
+                        amdInstalled |= deviceId.IndexOf("VEN_1002", StringComparison.OrdinalIgnoreCase) >= 0;
+                    }
                 }
             }
-            if (IsAdapterAvailable(_nvidiaDllName))
+
+            bool nvidiaAvailable = nvidiaInstalled && IsAdapterAvailable(_nvidiaDllName);
+            // Do not initialize ADL on hybrid systems when NVIDIA is the selected backend.
+            if (preference != GraphicsAdapterPreference.Amd && nvidiaAvailable)
             {
                 return GraphicsAdapter.Nvidia;
             }
-            return GraphicsAdapter.Unknown;
+            bool amdAvailable = false;
+            if (preference != GraphicsAdapterPreference.Nvidia && amdInstalled && IsAdapterAvailable(_amdDllName))
+            {
+                using (IAmdAdapter amdAdapter = Environment.Is64BitOperatingSystem
+                    ? (IAmdAdapter)new AmdAdapter64() : new AmdAdapter32())
+                {
+                    amdAvailable = amdAdapter.IsAvailable();
+                }
+            }
+            return SelectAdapter(preference, nvidiaAvailable, amdAvailable);
         }
 
         private static bool IsAdapterAvailable(string dllName)
         {
+            IntPtr module = IntPtr.Zero;
             try
             {
-                return LoadLibrary(dllName) != IntPtr.Zero;
+                string systemFolder = Environment.GetFolderPath(Environment.SpecialFolder.SystemX86);
+                module = LoadLibrary(Path.Combine(systemFolder, dllName));
+                return module != IntPtr.Zero;
             }
-            catch (Exception)
+            finally
             {
-                return false;
-            }    
+                if (module != IntPtr.Zero)
+                    FreeLibrary(module);
+            }
         }
     }
 }

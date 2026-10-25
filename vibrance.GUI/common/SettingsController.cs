@@ -23,7 +23,7 @@ namespace vibrance.GUI.common
            string lpFileName);
 
 
-        [DllImport("kernel32.dll", EntryPoint = "WritePrivateProfileString")]
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern bool WritePrivateProfileString(string lpAppName,
           string lpKeyName, string lpString, string lpFileName);
 
@@ -32,10 +32,68 @@ namespace vibrance.GUI.common
         const string SzKeyNameRefreshRate = "refreshRate";
         const string SzKeyNameAffectPrimaryMonitorOnly = "affectPrimaryMonitorOnly";
         const string SzKeyNameNeverSwitchResolution = "neverSwitchResolution";
+        const string SzKeyNameGraphicsAdapter = "graphicsAdapter";
 
         private string _fileName = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData).ToString() + "\\vibranceGUI\\vibranceGUI.ini";
         private string _fileNameApplicationSettings = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData).ToString() + "\\vibranceGUI\\applicationData.xml";
 
+        public SettingsController() { }
+
+        public SettingsController(GraphicsAdapter adapter)
+        {
+            if (adapter != GraphicsAdapter.Unknown)
+            {
+                string directory = Path.GetDirectoryName(_fileName);
+                _fileName = Path.Combine(directory, "vibranceGUI." + adapter + ".ini");
+                _fileNameApplicationSettings = Path.Combine(directory, "applicationData." + adapter + ".xml");
+            }
+        }
+
+        // The old settings had no vendor tag. Never guess which GPU they belong to:
+        // AMD saturation and NVIDIA vibrance have different scales.
+        public bool CanImportLegacyProfile(GraphicsAdapter adapter)
+        {
+            if (adapter == GraphicsAdapter.Unknown || File.Exists(_fileName))
+                return false;
+            string directory = Path.GetDirectoryName(_fileName);
+            string legacyIni = Path.Combine(directory, "vibranceGUI.ini");
+            string legacyApplications = Path.Combine(directory, "applicationData.xml");
+            if (!File.Exists(legacyIni) || !File.Exists(legacyApplications))
+                return false;
+
+            StringBuilder owner = new StringBuilder(32);
+            GetPrivateProfileString(SzSectionName, "legacyProfileAdapter", "", owner, (uint)owner.Capacity, legacyIni);
+            return owner.Length == 0 || owner.ToString() == adapter.ToString();
+        }
+
+        public void ImportLegacyProfile(GraphicsAdapter adapter)
+        {
+            if (!CanImportLegacyProfile(adapter))
+                return;
+            string directory = Path.GetDirectoryName(_fileName);
+            string legacyIni = Path.Combine(directory, "vibranceGUI.ini");
+            string legacyApplications = Path.Combine(directory, "applicationData.xml");
+            File.Copy(legacyApplications, _fileNameApplicationSettings, true);
+            File.Copy(legacyIni, _fileName, false);
+            WritePrivateProfileString(SzSectionName, "legacyProfileAdapter", adapter.ToString(), legacyIni);
+        }
+
+        public GraphicsAdapterPreference ReadGraphicsAdapterPreference()
+        {
+            StringBuilder value = new StringBuilder(32);
+            GetPrivateProfileString(SzSectionName, SzKeyNameGraphicsAdapter, "Auto", value,
+                (uint)value.Capacity, _fileName);
+            GraphicsAdapterPreference preference;
+            return Enum.TryParse(value.ToString(), true, out preference) &&
+                Enum.IsDefined(typeof(GraphicsAdapterPreference), preference)
+                ? preference : GraphicsAdapterPreference.Auto;
+        }
+
+        public bool SetGraphicsAdapterPreference(GraphicsAdapterPreference preference)
+        {
+            return Enum.IsDefined(typeof(GraphicsAdapterPreference), preference) &&
+                SetVibranceSetting(SzKeyNameGraphicsAdapter, preference.ToString());
+        }
 
         public bool SetVibranceSettings(string windowsLevel, string affectPrimaryMonitorOnly, string neverSwitchResolution, List<ApplicationSetting> applicationSettings)
         {
@@ -44,26 +102,25 @@ namespace vibrance.GUI.common
                 return false;
             }
 
-            WritePrivateProfileString(SzSectionName, SzKeyNameInactive, windowsLevel, _fileName);
-            WritePrivateProfileString(SzSectionName, SzKeyNameAffectPrimaryMonitorOnly, affectPrimaryMonitorOnly, _fileName);
-            WritePrivateProfileString(SzSectionName, SzKeyNameNeverSwitchResolution, neverSwitchResolution, _fileName);
+            if (!WritePrivateProfileString(SzSectionName, SzKeyNameInactive, windowsLevel, _fileName) ||
+                !WritePrivateProfileString(SzSectionName, SzKeyNameAffectPrimaryMonitorOnly, affectPrimaryMonitorOnly, _fileName) ||
+                !WritePrivateProfileString(SzSectionName, SzKeyNameNeverSwitchResolution, neverSwitchResolution, _fileName))
+                return false;
 
             try
             {
-                var writer = System.Xml.XmlWriter.Create(_fileNameApplicationSettings);
-                if (writer.WriteState != WriteState.Start)
-                    return false;
-                XmlSerializer serializer = new XmlSerializer(typeof(List<ApplicationSetting>));
-                serializer.Serialize(writer, applicationSettings);
-                writer.Flush();
-                writer.Close();
+                using (var writer = System.Xml.XmlWriter.Create(_fileNameApplicationSettings))
+                {
+                    XmlSerializer serializer = new XmlSerializer(typeof(List<ApplicationSetting>));
+                    serializer.Serialize(writer, applicationSettings);
+                }
             }
             catch (Exception)
             {
                 return false;
             }
 
-            return (Marshal.GetLastWin32Error() == 0);
+            return true;
         }
 
         public bool SetVibranceSetting(string szKeyName, string value)
@@ -73,24 +130,28 @@ namespace vibrance.GUI.common
                 return false;
             }
 
-            WritePrivateProfileString(SzSectionName, szKeyName, value.ToString(), _fileName);
-
-            return (Marshal.GetLastWin32Error() == 0);
+            return WritePrivateProfileString(SzSectionName, szKeyName, value, _fileName);
         }
 
         private bool PrepareFile()
         {
-            if (!IsFileExisting(_fileName))
+            try
             {
-                StreamWriter sw = new StreamWriter(_fileName);
-                sw.Close();
+                Directory.CreateDirectory(Path.GetDirectoryName(_fileName));
                 if (!IsFileExisting(_fileName))
                 {
-                    return false;
+                    using (File.Create(_fileName)) { }
                 }
+                return true;
             }
-
-            return true;
+            catch (IOException)
+            {
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
         }
 
         public void ReadVibranceSettings(GraphicsAdapter graphicsAdapter, out int vibranceWindowsLevel, out bool affectPrimaryMonitorOnly, out bool neverSwitchResolution, out List<ApplicationSetting> applicationSettings)
@@ -108,6 +169,7 @@ namespace vibrance.GUI.common
                 defaultLevel = 100;
                 maxLevel = 300;
             }
+            int minLevel = 0;
 
             if (!IsFileExisting(_fileName) || !IsFileExisting(_fileNameApplicationSettings))
             {
@@ -167,15 +229,21 @@ namespace vibrance.GUI.common
                 return;
             }
 
-            if (vibranceWindowsLevel < defaultLevel || vibranceWindowsLevel > maxLevel)
+            if (vibranceWindowsLevel < minLevel || vibranceWindowsLevel > maxLevel)
                 vibranceWindowsLevel = defaultLevel;
 
             try
             {
-                var reader = System.Xml.XmlReader.Create(_fileNameApplicationSettings);
-                XmlSerializer serializer = new XmlSerializer(typeof(List<ApplicationSetting>));
-                applicationSettings = (List<ApplicationSetting>)serializer.Deserialize(reader);
-                reader.Close();
+                using (var reader = System.Xml.XmlReader.Create(_fileNameApplicationSettings))
+                {
+                    XmlSerializer serializer = new XmlSerializer(typeof(List<ApplicationSetting>));
+                    applicationSettings = (List<ApplicationSetting>)serializer.Deserialize(reader);
+                }
+                foreach (var setting in applicationSettings)
+                {
+                    if (setting.IngameLevel < minLevel || setting.IngameLevel > maxLevel)
+                        setting.IngameLevel = defaultLevel;
+                }
             }
             catch (Exception)
             {
