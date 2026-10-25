@@ -1,5 +1,9 @@
 # vibranceGUIx 2.3.1.3
 
+**Independent fork, not an official release of the original vibranceGUI.**
+Maintained by Max, based on [juv/vibranceGUI](https://github.com/juv/vibranceGUI).
+For the original project and downloads, visit [vibrancegui.com](https://vibrancegui.com/).
+
 The first downloadable release of this fork: NVIDIA Digital Vibrance and AMD
 saturation profiles for Windows, with hybrid-GPU selection and a Windows installer.
 

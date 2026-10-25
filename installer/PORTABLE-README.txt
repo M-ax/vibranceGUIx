@@ -1,6 +1,10 @@
-vibranceGUIx
+vibranceGUIx - independent fork of vibranceGUI
 Digital Vibrance for Windows
 https://github.com/M-ax/vibranceGUIx
+
+Maintained by Max. This is not the original vibranceGUI or an official release
+from its authors. Original project: https://github.com/juv/vibranceGUI
+Original downloads: https://vibrancegui.com/
 
 GET STARTED
 1. Extract the entire portable ZIP to a folder you intend to keep.

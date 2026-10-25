@@ -1,5 +1,10 @@
 # vibranceGUIx — Digital Vibrance for Windows 11 (2026)
 
+**Independent fork, not the original vibranceGUI.** vibranceGUIx is maintained
+by Max and builds on [juv/vibranceGUI](https://github.com/juv/vibranceGUI).
+These are this fork's downloads—not official releases from the original authors.
+For the original project and its downloads, visit [vibrancegui.com](https://vibrancegui.com/).
+
 **[Download Windows installer](https://github.com/M-ax/vibranceGUIx/releases/latest/download/vibranceGUIx-Setup.exe)** ·
 [Portable ZIP](https://github.com/M-ax/vibranceGUIx/releases/latest/download/vibranceGUIx-Portable.zip) ·
 [Release notes](https://github.com/M-ax/vibranceGUIx/releases/latest)
@@ -218,9 +223,16 @@ control works and whether the problem occurs on game focus, Alt+Tab, or exit.
 Contributions and reproducible bug reports are welcome. Do not report this fork's
 installer or GPU-selection changes to the original authors as upstream bugs.
 
+## Support vibranceGUIx
+
+If you find Max's work on this independent fork useful, you can
+[support Max on Ko-fi](https://ko-fi.com/max_weimer).
+Donations through this link support maintenance of **vibranceGUIx**, not the
+original vibranceGUI project or its authors.
+
 ## Original project and credits
 
-This C# / Windows Forms project builds on
+Credit for the original C# / Windows Forms application belongs to
 [juv/vibranceGUI](https://github.com/juv/vibranceGUI).
 The original project and downloads are at [vibrancegui.com](https://vibrancegui.com/).
 Original NVIDIA work: [juvlarN](https://twitter.com/juvlarN).
