@@ -32,7 +32,8 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(VibranceGUI));
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.twitterToolStripTextBox = new System.Windows.Forms.ToolStripMenuItem();
+            this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.projectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.backgroundWorker = new System.ComponentModel.BackgroundWorker();
             this.checkBoxAutostart = new System.Windows.Forms.CheckBox();
@@ -47,11 +48,10 @@
             this.trackBarWindowsLevel = new System.Windows.Forms.TrackBar();
             this.statusLabel = new System.Windows.Forms.Label();
             this.observerStatusLabel = new System.Windows.Forms.Label();
-            this.labelTwitter = new System.Windows.Forms.Label();
-            this.linkLabelTwitter = new System.Windows.Forms.LinkLabel();
+            this.labelProduct = new System.Windows.Forms.Label();
+            this.linkLabelProject = new System.Windows.Forms.LinkLabel();
             this.settingsBackgroundWorker = new System.ComponentModel.BackgroundWorker();
-            this.buttonPaypal = new System.Windows.Forms.Button();
-            this.labelPaypal = new System.Windows.Forms.Label();
+            this.labelSubtitle = new System.Windows.Forms.Label();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.buttonProcessExplorer = new System.Windows.Forms.Button();
@@ -68,7 +68,7 @@
             // notifyIcon
             // 
             this.notifyIcon.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            this.notifyIcon.BalloonTipText = "Running minimized... Like the program? Consider donating!";
+            this.notifyIcon.BalloonTipText = "Running in the notification area. Click to open vibranceGUIx.";
             this.notifyIcon.BalloonTipTitle = AppName;
             this.notifyIcon.ContextMenuStrip = this.contextMenuStrip;
             this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
@@ -79,21 +79,24 @@
             // contextMenuStrip
             // 
             this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.twitterToolStripTextBox,
+            this.openToolStripMenuItem,
+            this.projectToolStripMenuItem,
             this.exitToolStripMenuItem});
             this.contextMenuStrip.Name = "contextMenuStrip";
             this.contextMenuStrip.Size = new System.Drawing.Size(217, 48);
             this.contextMenuStrip.Text = "Vibrance Control";
             // 
-            // twitterToolStripTextBox
+            // openToolStripMenuItem
             // 
-            this.twitterToolStripTextBox.Font = new System.Drawing.Font("Segoe UI", 9F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Italic | System.Drawing.FontStyle.Underline))));
-            this.twitterToolStripTextBox.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(6)))), ((int)(((byte)(69)))), ((int)(((byte)(173)))));
-            this.twitterToolStripTextBox.Image = ((System.Drawing.Image)(resources.GetObject("twitterToolStripTextBox.Image")));
-            this.twitterToolStripTextBox.Name = "twitterToolStripTextBox";
-            this.twitterToolStripTextBox.Size = new System.Drawing.Size(216, 22);
-            this.twitterToolStripTextBox.Text = "https://twitter.com/juvlarN";
-            this.twitterToolStripTextBox.Click += new System.EventHandler(this.twitterToolStripTextBox_Click);
+            this.openToolStripMenuItem.Name = "openToolStripMenuItem";
+            this.openToolStripMenuItem.Text = "Open vibranceGUIx";
+            this.openToolStripMenuItem.Click += new System.EventHandler(this.openToolStripMenuItem_Click);
+            //
+            // projectToolStripMenuItem
+            //
+            this.projectToolStripMenuItem.Name = "projectToolStripMenuItem";
+            this.projectToolStripMenuItem.Text = "Project and help";
+            this.projectToolStripMenuItem.Click += new System.EventHandler(this.projectToolStripMenuItem_Click);
             // 
             // exitToolStripMenuItem
             // 
@@ -174,7 +177,7 @@
             this.checkBoxPrimaryMonitorOnly.Name = "checkBoxPrimaryMonitorOnly";
             this.checkBoxPrimaryMonitorOnly.Size = new System.Drawing.Size(151, 17);
             this.checkBoxPrimaryMonitorOnly.TabIndex = 15;
-            this.checkBoxPrimaryMonitorOnly.Text = "Affect Primary Monitor only";
+            this.checkBoxPrimaryMonitorOnly.Text = "Primary monitor only";
             this.toolTip.SetToolTip(this.checkBoxPrimaryMonitorOnly, "When checking this, VibranceGUI will only change vibrance values on your primary " +
         "monitor.");
             this.checkBoxPrimaryMonitorOnly.UseVisualStyleBackColor = true;
@@ -189,7 +192,7 @@
             this.groupBox3.Size = new System.Drawing.Size(182, 72);
             this.groupBox3.TabIndex = 12;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Windows Vibrance Level";
+            this.groupBox3.Text = "Desktop vibrance";
             // 
             // labelWindowsLevel
             // 
@@ -211,9 +214,9 @@
             // statusLabel
             // 
             this.statusLabel.AutoSize = false;
-            this.statusLabel.Location = new System.Drawing.Point(106, 480);
+            this.statusLabel.Location = new System.Drawing.Point(60, 480);
             this.statusLabel.Name = "statusLabel";
-            this.statusLabel.Size = new System.Drawing.Size(300, 36);
+            this.statusLabel.Size = new System.Drawing.Size(346, 36);
             this.statusLabel.TabIndex = 14;
             this.statusLabel.Text = "Initializing...";
             // 
@@ -224,54 +227,38 @@
             this.observerStatusLabel.Name = "observerStatusLabel";
             this.observerStatusLabel.Size = new System.Drawing.Size(87, 13);
             this.observerStatusLabel.TabIndex = 13;
-            this.observerStatusLabel.Text = "Observer status: ";
+            this.observerStatusLabel.Text = "Status:";
             // 
-            // labelTwitter
+            // labelProduct
             // 
-            this.labelTwitter.AutoSize = true;
-            this.labelTwitter.Location = new System.Drawing.Point(10, 11);
-            this.labelTwitter.Name = "labelTwitter";
-            this.labelTwitter.Size = new System.Drawing.Size(192, 13);
-            this.labelTwitter.TabIndex = 11;
-            this.labelTwitter.Text = "Follow @juvlarN on twitter for updates: ";
+            this.labelProduct.AutoSize = true;
+            this.labelProduct.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);
+            this.labelProduct.Location = new System.Drawing.Point(10, 9);
+            this.labelProduct.Name = "labelProduct";
+            this.labelProduct.Text = AppName;
             // 
-            // linkLabelTwitter
+            // linkLabelProject
             // 
-            this.linkLabelTwitter.AutoSize = true;
-            this.linkLabelTwitter.Location = new System.Drawing.Point(208, 11);
-            this.linkLabelTwitter.Name = "linkLabelTwitter";
-            this.linkLabelTwitter.Size = new System.Drawing.Size(132, 13);
-            this.linkLabelTwitter.TabIndex = 10;
-            this.linkLabelTwitter.TabStop = true;
-            this.linkLabelTwitter.Text = "https://twitter.com/juvlarN";
-            this.linkLabelTwitter.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelTwitter_LinkClicked);
+            this.linkLabelProject.AutoSize = true;
+            this.linkLabelProject.Location = new System.Drawing.Point(13, 60);
+            this.linkLabelProject.Name = "linkLabelProject";
+            this.linkLabelProject.TabIndex = 0;
+            this.linkLabelProject.TabStop = true;
+            this.linkLabelProject.Text = "Project and help";
+            this.toolTip.SetToolTip(this.linkLabelProject, ProjectLink);
+            this.linkLabelProject.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelProject_LinkClicked);
             // 
             // settingsBackgroundWorker
             // 
             this.settingsBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.settingsBackgroundWorker_DoWork);
             this.settingsBackgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.settingsBackgroundWorker_RunWorkerCompleted);
             // 
-            // buttonPaypal
+            // labelSubtitle
             // 
-            this.buttonPaypal.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.buttonPaypal.BackColor = System.Drawing.Color.Transparent;
-            this.buttonPaypal.Image = ((System.Drawing.Image)(resources.GetObject("buttonPaypal.Image")));
-            this.buttonPaypal.Location = new System.Drawing.Point(211, 28);
-            this.buttonPaypal.Name = "buttonPaypal";
-            this.buttonPaypal.Size = new System.Drawing.Size(90, 55);
-            this.buttonPaypal.TabIndex = 16;
-            this.toolTip.SetToolTip(this.buttonPaypal, "Donate to the original vibranceGUI author through PayPal");
-            this.buttonPaypal.UseVisualStyleBackColor = false;
-            this.buttonPaypal.Click += new System.EventHandler(this.buttonPaypal_Click);
-            // 
-            // labelPaypal
-            // 
-            this.labelPaypal.AutoSize = true;
-            this.labelPaypal.Location = new System.Drawing.Point(10, 48);
-            this.labelPaypal.Name = "labelPaypal";
-            this.labelPaypal.Size = new System.Drawing.Size(183, 13);
-            this.labelPaypal.TabIndex = 17;
-            this.labelPaypal.Text = "Like the program? Consider donating:";
+            this.labelSubtitle.AutoSize = true;
+            this.labelSubtitle.Location = new System.Drawing.Point(13, 41);
+            this.labelSubtitle.Name = "labelSubtitle";
+            this.labelSubtitle.Text = "Automatic vibrance for your games and desktop.";
             // 
             // toolTip
             // 
@@ -291,7 +278,7 @@
             this.groupBox5.Size = new System.Drawing.Size(397, 227);
             this.groupBox5.TabIndex = 18;
             this.groupBox5.TabStop = false;
-            this.groupBox5.Text = "Program Settings";
+            this.groupBox5.Text = "Programs - double-click to edit";
             // 
             // buttonProcessExplorer
             // 
@@ -338,13 +325,12 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(419, 524);
             this.Controls.Add(this.groupBox5);
-            this.Controls.Add(this.labelPaypal);
-            this.Controls.Add(this.buttonPaypal);
+            this.Controls.Add(this.labelSubtitle);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.observerStatusLabel);
-            this.Controls.Add(this.labelTwitter);
-            this.Controls.Add(this.linkLabelTwitter);
+            this.Controls.Add(this.labelProduct);
+            this.Controls.Add(this.linkLabelProject);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
@@ -370,7 +356,8 @@
 
         private System.Windows.Forms.NotifyIcon notifyIcon;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
-        private System.Windows.Forms.ToolStripMenuItem twitterToolStripTextBox;
+        private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem projectToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.ComponentModel.BackgroundWorker backgroundWorker;
         private System.Windows.Forms.CheckBox checkBoxAutostart;
@@ -383,11 +370,10 @@
         private System.Windows.Forms.TrackBar trackBarWindowsLevel;
         private System.Windows.Forms.Label statusLabel;
         private System.Windows.Forms.Label observerStatusLabel;
-        private System.Windows.Forms.Label labelTwitter;
-        private System.Windows.Forms.LinkLabel linkLabelTwitter;
+        private System.Windows.Forms.Label labelProduct;
+        private System.Windows.Forms.LinkLabel linkLabelProject;
         private System.ComponentModel.BackgroundWorker settingsBackgroundWorker;
-        private System.Windows.Forms.Button buttonPaypal;
-        private System.Windows.Forms.Label labelPaypal;
+        private System.Windows.Forms.Label labelSubtitle;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.CheckBox checkBoxPrimaryMonitorOnly;
         private System.Windows.Forms.GroupBox groupBox5;

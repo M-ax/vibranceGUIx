@@ -2,7 +2,7 @@
 
 ## Validation environment
 
-The branded vibranceGUIx 2.3.1.2 build was validated on Windows 11 build 26200 with Windows PowerShell 5.1,
+The vibranceGUIx 2.3.1.3 release build was validated on Windows 11 build 26200 with Windows PowerShell 5.1,
 Visual Studio 18 Community MSBuild, .NET Framework 4.8 runtime, and downloaded
 Inno Setup 6.7.3. No tools were installed globally.
 
@@ -11,6 +11,7 @@ Commands completed successfully:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\verify-payload.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\verify-release.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1 -Hardware
 git diff --check
 ```
@@ -18,26 +19,34 @@ git diff --check
 - Automatic `vswhere` MSBuild discovery worked.
 - Release/x86 build and Inno script compilation succeeded.
 - Payload verification passed: x86 CLR flags, expected embedded resource name,
-  embedded NVIDIA native DLL matching the source bytes, config and managed DLL.
+  embedded NVIDIA native DLL matching the source bytes, config, managed DLL,
+  quick-start guide and dependency notices.
+- Release verification passed: checksums for both downloads, byte-identical
+  installer staging, exact portable ZIP inventory and matching payload hashes.
 - Existing application warnings remain: CS0659 (`ResolutionModeWrapper` missing
   `GetHashCode`) and CS0168 (unused `ex` in `WinEventHook`). No build errors.
-- Regression and hardware checks passed 37 assertions: selection matrix, saved
+- Regression and hardware checks passed 42 assertions: selection matrix, saved
   preference round-trips, invalid preference recovery, profile isolation/import,
   numeric range validation, recovery-window control availability, product/window
-  branding, and preservation of the legacy startup registration.
+  branding, preservation of the legacy startup registration, project/help links,
+  tray actions and window restoration.
 - The actual Windows host selected NVIDIA automatically, selected AMD when
   overridden, and initialized the NVIDIA backend on its GeForce RTX 5090 with
   three controllable displays. This was a read-only driver probe; no saturation or
   vibrance settings were changed by the test.
 - The recovery UI smoke test verified the startup checkbox and GPU dropdown are
-  visible and enabled. The installer is unsigned.
+  visible and enabled. The polished UI screenshot was inspected. The installer
+  is unsigned.
 
 ## Final build artifacts and remaining checks
 
 Produced artifact paths, relative to the repository root:
 
 ```text
-artifacts/vibranceGUIx-2.3.1.2-Setup.exe
+artifacts/vibranceGUIx-2.3.1.3-Setup.exe
+artifacts/release/vibranceGUIx-Setup.exe
+artifacts/release/vibranceGUIx-Portable.zip
+artifacts/release/SHA256SUMS.txt
 artifacts/payload/
 artifacts/build.log
 artifacts/build.binlog
@@ -47,7 +56,8 @@ artifacts/payload-sha256.json
 Hashes and sizes identify a particular build, not all future builds. Source,
 compiler and timestamp changes can change them; inspect the freshly generated
 payload hash manifest and compute the installer hash for the build being tested.
-These paths describe local build outputs, not a published release download.
+These are local build paths. Public downloads and their matching checksums are
+available through the repository's [GitHub releases](https://github.com/M-ax/vibranceGUIx/releases).
 
 The installer wizard was opened with permission, but completion is unknown.
 Installation, uninstallation and sign-in startup are therefore **not verified**.

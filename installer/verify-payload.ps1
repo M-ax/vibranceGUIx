@@ -19,7 +19,7 @@ finally { $resource.Dispose(); $sha.Dispose() }
 if ($embeddedHash -ne (Get-FileHash (Join-Path $root 'vibrance.GUI\NVIDIA\vibranceDLL.dll')).Hash) {
     throw 'Embedded NVIDIA DLL does not match source DLL'
 }
-foreach ($file in @('vibrance.GUI.exe.config', 'Microsoft.Practices.ServiceLocation.dll')) {
+foreach ($file in @('vibrance.GUI.exe.config', 'Microsoft.Practices.ServiceLocation.dll', 'README.txt', 'THIRD-PARTY-NOTICES.txt')) {
     if (!(Test-Path (Join-Path $payload $file))) { throw "Missing payload file: $file" }
 }
-Write-Host "PASS: x86 CLR assembly, exact NVIDIA native resource, config and managed dependency present."
+Write-Host "PASS: x86 CLR assembly, exact NVIDIA native resource, config, managed dependency, instructions and notices present."

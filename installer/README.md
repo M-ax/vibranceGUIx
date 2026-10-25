@@ -32,8 +32,11 @@ and existing runtime extraction behavior.
 
 ## Outputs and reproducibility
 
-- `artifacts/payload/`: executable, `.exe.config`, and CommonServiceLocator DLL.
-- `artifacts/vibranceGUIx-2.3.1.2-Setup.exe`: installer (name follows executable file version).
+- `artifacts/payload/`: executable, `.exe.config`, CommonServiceLocator DLL, quick-start guide and dependency notices.
+- `artifacts/vibranceGUIx-2.3.1.3-Setup.exe`: installer (name follows executable file version).
+- `artifacts/release/vibranceGUIx-Setup.exe`: identical installer with a stable download filename.
+- `artifacts/release/vibranceGUIx-Portable.zip`: the complete portable payload.
+- `artifacts/release/SHA256SUMS.txt`: SHA256 hashes of the installer and portable ZIP.
 - `artifacts/build.log`, `artifacts/build.binlog`: detailed MSBuild evidence.
 - `artifacts/payload-sha256.json`: payload hashes.
 
@@ -50,10 +53,26 @@ an unknown-publisher/SmartScreen warning. Code signing is a separate release ste
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\verify-payload.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\verify-release.ps1
 ```
 
-This checks the PE architecture and that the embedded NVIDIA DLL is byte-for-byte
-identical to the source DLL without starting the app or changing GPU settings.
+The payload check verifies the PE architecture and that the embedded NVIDIA DLL
+is byte-for-byte identical to the source DLL without starting the app or changing
+GPU settings. The release check verifies both checksums, installer identity, ZIP
+inventory and the hashes of all archived payload files.
+
+## Publishing a release
+
+Build from the exact commit that will be tagged. Run both verifiers and the
+regression tests before uploading. Create a draft GitHub release targeting that
+commit, upload the three files from `artifacts/release`, verify the uploaded
+digests, then publish the draft. Do not overwrite an existing published version.
+
+Keep these asset filenames stable so the README's `releases/latest/download`
+links continue to work. Put the version in the release tag/title and executable
+metadata. Use [release notes](RELEASE-NOTES.md) as the release description.
+After publication, download the public assets and verify their SHA256 hashes.
+The build script itself never publishes, signs, or installs anything.
 
 ## Installer behavior
 
@@ -65,6 +84,7 @@ Fresh installation is per-user at `%LocalAppData%\Programs\vibranceGUIx`, withou
 UAC elevation; upgrades retain the existing directory. Setup creates a Start Menu
 shortcut and a registered uninstaller. Desktop
 shortcut, launch after setup, and **Launch on boot (at sign-in)** are optional.
+Launch after setup is selected by default; launch at sign-in remains opt-in.
 The startup checkbox defaults off on fresh installs and follows the live Run
 value on upgrades, including changes made inside the application.
 

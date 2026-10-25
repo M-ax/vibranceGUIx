@@ -27,8 +27,7 @@ namespace vibrance.GUI.common
         private const string AppName = "vibranceGUIx";
         // Keep the original registration to preserve startup choices on upgrade.
         private const string StartupRegistrationName = "vibranceGUI";
-        private const string TwitterLink = "https://twitter.com/juvlarN";
-        private const string PaypalDonationLink = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=JDQFNKNNEW356";
+        private const string ProjectLink = "https://github.com/M-ax/vibranceGUIx";
 
         private bool _allowVisible;
         private List<ApplicationSetting> _applicationSettings;
@@ -159,9 +158,6 @@ namespace vibrance.GUI.common
         {
             if (this.WindowState == FormWindowState.Minimized)
             {
-                //this.notifyIcon.Visible = true;
-                //this.notifyIcon.BalloonTipText = "Running minimized... Like the program? Consider donating!";
-                //this.notifyIcon.ShowBalloonTip(250);
                 this.Hide();
             }
         }
@@ -257,7 +253,7 @@ namespace vibrance.GUI.common
         {
             if (e.ProgressPercentage == 1)
             {
-                this.statusLabel.Text = "Running!";
+                this.statusLabel.Text = "Ready. Watching for your programs.";
                 this.statusLabel.ForeColor = Color.Green;
             }
             else if (e.ProgressPercentage == 2)
@@ -271,6 +267,12 @@ namespace vibrance.GUI.common
         }
 
         private void notifyIcon_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+                openToolStripMenuItem_Click(sender, EventArgs.Empty);
+        }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
             _allowVisible = true;
             this.Show();
@@ -333,14 +335,14 @@ namespace vibrance.GUI.common
             }
         }
 
-        private void twitterToolStripTextBox_Click(object sender, EventArgs e)
+        private void projectToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start(TwitterLink);
+            Process.Start(ProjectLink);
         }
 
-        private void linkLabelTwitter_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        private void linkLabelProject_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start(TwitterLink);
+            Process.Start(ProjectLink);
         }
 
         private void SetGuiEnabledFlag(bool flag)
@@ -468,11 +470,6 @@ namespace vibrance.GUI.common
                 neverSwitchResolution.ToString(),
                 _applicationSettings
             );
-        }
-
-        private void buttonPaypal_Click(object sender, EventArgs e)
-        {
-            Process.Start(PaypalDonationLink);
         }
 
         private void buttonAddProgram_Click(object sender, EventArgs e)

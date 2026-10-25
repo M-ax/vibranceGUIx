@@ -10,6 +10,9 @@ $root = $PSScriptRoot
 $tools = Join-Path $root '.tools'
 $artifacts = Join-Path $root 'artifacts'
 New-Item -ItemType Directory -Force $tools, $artifacts | Out-Null
+# Never leave a previous release candidate available after a partial/failed build.
+$release = Join-Path $artifacts 'release'
+if (Test-Path $release) { Remove-Item $release -Recurse -Force }
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Restore-PinnedPackage($id, $version, $hash, $destination) {
@@ -51,6 +54,8 @@ $output = Join-Path $root 'vibrance.GUI\bin\x86\Release'
 foreach ($file in @('vibrance.GUI.exe', 'vibrance.GUI.exe.config', 'Microsoft.Practices.ServiceLocation.dll')) {
     Copy-Item (Join-Path $output $file) $payload
 }
+Copy-Item (Join-Path $root 'installer\PORTABLE-README.txt') (Join-Path $payload 'README.txt')
+Copy-Item (Join-Path $root 'installer\THIRD-PARTY-NOTICES.txt') $payload
 $exe = Join-Path $payload 'vibrance.GUI.exe'
 $version = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
 if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw "Invalid file version: $version" }
@@ -60,9 +65,19 @@ if (!$SkipInstaller) {
     $iscc = Join-Path $inno 'tools\ISCC.exe'
     & $iscc "/DAppVersion=$version" "/DPayloadDir=$payload" "/DOutputDir=$artifacts" (Join-Path $root 'installer\vibranceGUI.iss')
     if ($LASTEXITCODE -ne 0) { throw "ISCC failed: $LASTEXITCODE" }
+
+    # Stable asset names keep /releases/latest/download links valid across versions.
+    New-Item -ItemType Directory $release | Out-Null
+    Copy-Item (Join-Path $artifacts "vibranceGUIx-$version-Setup.exe") (Join-Path $release 'vibranceGUIx-Setup.exe')
+    Compress-Archive -Path (Join-Path $payload '*') -DestinationPath (Join-Path $release 'vibranceGUIx-Portable.zip')
+    $checksums = foreach ($name in @('vibranceGUIx-Setup.exe', 'vibranceGUIx-Portable.zip')) {
+        '{0}  {1}' -f (Get-FileHash (Join-Path $release $name) -Algorithm SHA256).Hash.ToLowerInvariant(), $name
+    }
+    $checksums | Set-Content (Join-Path $release 'SHA256SUMS.txt') -Encoding ASCII
 }
 Get-ChildItem $payload -File | Get-FileHash -Algorithm SHA256 |
     Select-Object @{n='File';e={Split-Path $_.Path -Leaf}}, Hash |
     ConvertTo-Json | Set-Content (Join-Path $artifacts 'payload-sha256.json') -Encoding UTF8
 Write-Host "Release x86 payload: $payload"
 if (!$SkipInstaller) { Write-Host "Installer: $artifacts\vibranceGUIx-$version-Setup.exe" }
+if (!$SkipInstaller) { Write-Host "Release assets: $artifacts\release" }

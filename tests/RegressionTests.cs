@@ -100,11 +100,24 @@ public static class RegressionTests
             Check(startup.Visible && startup.Enabled && startup.Text.Contains("Launch on boot"), "Launch on boot remains visible without a working GPU");
             Check(selector.Visible && selector.Enabled && selector.Items.Count == 3, "GPU override remains available for recovery");
             Check(!slider.Enabled && !form.IsGpuInitialized, "Unavailable GPU disables vibrance controls");
+            var title = (Label)typeof(VibranceGUI).GetField("labelProduct", PrivateInstance).GetValue(form);
+            var help = (LinkLabel)typeof(VibranceGUI).GetField("linkLabelProject", PrivateInstance).GetValue(form);
+            var tray = (ContextMenuStrip)typeof(VibranceGUI).GetField("contextMenuStrip", PrivateInstance).GetValue(form);
+            Check(title.Visible && title.Text == "vibranceGUIx", "Product title replaces promotional header");
+            Check(help.Visible && help.Enabled && help.TabStop, "Project help remains keyboard accessible without a GPU");
+            Check((string)typeof(VibranceGUI).GetField("ProjectLink", BindingFlags.Static | BindingFlags.NonPublic).GetRawConstantValue()
+                == "https://github.com/M-ax/vibranceGUIx", "Help links target the maintained project");
+            Check(tray.Items.Count == 3 && tray.Items[0].Text == "Open vibranceGUIx"
+                && tray.Items[1].Text == "Project and help" && tray.Items[2].Text == "Exit",
+                "Tray provides open, help and exit actions");
+            form.Hide();
+            ((ToolStripMenuItem)tray.Items[0]).PerformClick();
+            Check(form.Visible && form.WindowState == FormWindowState.Normal, "Tray Open restores the window");
             if (!string.IsNullOrEmpty(screenshotPath))
             {
                 using (var bitmap = new Bitmap(form.Width, form.Height))
                 {
-                    form.DrawToBitmap(bitmap, form.ClientRectangle);
+                    form.DrawToBitmap(bitmap, new Rectangle(0, 0, form.Width, form.Height));
                     bitmap.Save(screenshotPath);
                 }
             }

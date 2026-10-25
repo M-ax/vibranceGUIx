@@ -1,5 +1,9 @@
 # vibranceGUIx — Digital Vibrance for Windows 11 (2026)
 
+**[Download Windows installer](https://github.com/M-ax/vibranceGUIx/releases/latest/download/vibranceGUIx-Setup.exe)** ·
+[Portable ZIP](https://github.com/M-ax/vibranceGUIx/releases/latest/download/vibranceGUIx-Portable.zip) ·
+[Release notes](https://github.com/M-ax/vibranceGUIx/releases/latest)
+
 **Automate NVIDIA Digital Vibrance and AMD Radeon saturation with separate game
 and desktop color settings.** vibranceGUIx is a Windows utility that uses graphics
 driver APIs to apply a saved color level when a configured game is in focus and
@@ -50,37 +54,42 @@ for the checks performed and remaining manual tests.
 
 ## Get the Windows installer
 
-To get an installer containing **this fork's changes**, build this repository.
-Downloads from the [original vibranceGUI website](https://vibrancegui.com/) are
-separate builds and should not be assumed to include these fixes.
+**Requirements:** Windows 10/11, .NET Framework 4.8 or later, and a supported
+graphics driver. No developer tools or administrator rights are needed.
 
-**Build requirements:** Windows, Windows PowerShell 5.1, Visual Studio MSBuild with
-.NET desktop build tools, and Internet access for the first build. The .NET SDK
-alone is not sufficient. You do not need Visual Studio to run the built installer.
-
-1. Clone or download [vibranceGUIx](https://github.com/M-ax/vibranceGUIx) and open
-   Windows PowerShell in its root.
-2. Build the application and installer:
-
-   ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
-   ```
-
-3. Run `artifacts\vibranceGUIx-2.3.1.2-Setup.exe`. The filename follows the
-   application's file version.
-4. Choose whether to create a desktop shortcut and **Launch on boot (at sign-in)**.
-5. Launch vibranceGUIx and leave **Graphics driver → Auto (prefer NVIDIA)** selected
-   unless you need the AMD backend.
+1. Download **[vibranceGUIx-Setup.exe](https://github.com/M-ax/vibranceGUIx/releases/latest/download/vibranceGUIx-Setup.exe)**.
+2. Exit any running vibranceGUI or vibranceGUIx from its tray menu, then run Setup.
+3. Choose whether to create a desktop shortcut and **Launch on boot (at sign-in)**.
+4. Leave **Launch vibranceGUIx** selected on the final page to open the app.
+5. Keep **Graphics driver → Auto (prefer NVIDIA)** unless you need the AMD backend.
 
 Fresh installs use `%LocalAppData%\Programs\vibranceGUIx` for the current user;
 upgrades retain the existing installation directory.
 **The installer is unsigned**, so Windows may display an unknown-publisher or
-SmartScreen warning. Do not assume an installer from a third-party download site
-is the same build.
+SmartScreen warning. Download from this repository's releases and verify the
+file before running it; do not disable Windows security software.
 
-For a portable run, keep all files in `artifacts\payload` together; the executable
-alone is not the complete application. See the
-[Windows build and installer guide](installer/README.md) for packaging details.
+Prefer no installer? Download the
+[portable ZIP](https://github.com/M-ax/vibranceGUIx/releases/latest/download/vibranceGUIx-Portable.zip),
+extract it completely, and run `vibrance.GUI.exe`. Keep the `.config` file and DLL
+alongside it. A quick-start guide and dependency notices are included.
+
+### Verify your download
+
+Download [SHA256SUMS.txt](https://github.com/M-ax/vibranceGUIx/releases/latest/download/SHA256SUMS.txt)
+from the same release and compare its entry with:
+
+```powershell
+Get-FileHash .\vibranceGUIx-Setup.exe -Algorithm SHA256
+```
+
+Checksums detect a changed or incomplete download; they are not a code-signing
+certificate. Older versions and their matching checksums remain on the
+[release history](https://github.com/M-ax/vibranceGUIx/releases).
+
+For source builds, see [Building and testing](#building-and-testing).
+Downloads from the [original vibranceGUI website](https://vibrancegui.com/) are
+separate builds and should not be assumed to include this fork's changes.
 
 ## Set up Digital Vibrance for CS2, Valorant, or another game
 
@@ -89,7 +98,7 @@ For Counter-Strike 2 (CS2), select the current game process rather than an old
 Counter-Strike: Global Offensive (CS:GO) entry. For Valorant, select the running
 game rather than its launcher.
 
-1. Set **Windows Vibrance Level** to your preferred desktop baseline.
+1. Set **Desktop vibrance** to your preferred desktop baseline.
 2. Enable **Never change resolutions** if you want color adjustments only.
 3. Start the game, click **Add**, and select its process. Alternatively, use
    **Add manually** to select the game executable.
@@ -178,10 +187,13 @@ From Windows PowerShell at the repository root:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\verify-payload.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\verify-release.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Tests.ps1
 ```
 
-The build requires Visual Studio MSBuild with .NET desktop build tools, and uses
+The build requires Windows PowerShell 5.1, Visual Studio MSBuild with .NET desktop
+build tools, and Internet access for the first build. The .NET SDK alone is not
+sufficient. It uses
 pinned local downloads rather than installing an old framework targeting pack.
 It builds **Release/x86**, required by the bundled native NVIDIA bridge.
 See the [build and packaging guide](installer/README.md) for prerequisites,

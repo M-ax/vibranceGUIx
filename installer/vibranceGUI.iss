@@ -37,13 +37,15 @@ Name: startup; Description: "Launch on boot (at sign-in)"; Check: StartupEnabled
 Source: "{#PayloadDir}\vibrance.GUI.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadDir}\vibrance.GUI.exe.config"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadDir}\Microsoft.Practices.ServiceLocation.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PayloadDir}\README.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#PayloadDir}\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{userprograms}\vibranceGUIx"; Filename: "{app}\vibrance.GUI.exe"; WorkingDir: "{app}"
 Name: "{userdesktop}\vibranceGUIx"; Filename: "{app}\vibrance.GUI.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\vibrance.GUI.exe"; Description: "Launch vibranceGUIx"; Flags: nowait postinstall skipifsilent unchecked
+Filename: "{app}\vibrance.GUI.exe"; Description: "Launch vibranceGUIx"; Flags: nowait postinstall skipifsilent
 
 [Code]
 const
